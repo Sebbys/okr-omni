@@ -5,7 +5,8 @@ import { requireAuth, requireEditDepartment } from "./lib/auth";
 export const list = query({
   args: { week: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     if (args.week) {
       return await ctx.db.query("cfr").withIndex("by_week", (q) => q.eq("week", args.week!)).collect();
     }

@@ -5,7 +5,8 @@ import { requireAuth, requireEditDepartment } from "./lib/auth";
 export const list = query({
   args: { krId: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     if (args.krId) {
       return await ctx.db.query("updateLog").withIndex("by_krId", (q) => q.eq("krId", args.krId!)).collect();
     }

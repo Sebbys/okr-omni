@@ -1,6 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth, requireEditDepartment } from "./lib/auth";
+import { requireAuth, requireAdmin, requireEditDepartment } from "./lib/auth";
 
 export const list = query({
   args: {
@@ -9,7 +9,8 @@ export const list = query({
     department: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     let results;
     if (args.objectiveId) {
       results = await ctx.db.query("keyResults").withIndex("by_objectiveId", (q) => q.eq("objectiveId", args.objectiveId!)).collect();
@@ -28,7 +29,8 @@ export const list = query({
 export const get = query({
   args: { krId: v.string() },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
     return await ctx.db.query("keyResults").withIndex("by_krId", (q) => q.eq("krId", args.krId)).first();
   },
 });
@@ -58,7 +60,8 @@ export const update = mutation({
 export const dashboardStats = query({
   args: {},
   handler: async (ctx) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
     const allKrs = await ctx.db.query("keyResults").collect();
     const total = allKrs.length;
     const achieved = allKrs.filter((kr) => kr.status === "Achieved").length;
@@ -97,7 +100,8 @@ export const dashboardStats = query({
 export const ceoMetrics = query({
   args: {},
   handler: async (ctx) => {
-    await requireAuth(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     const ceoKrIds = ["KR-001", "KR-002", "KR-008", "KR-009", "KR-010", "KR-011", "KR-018", "KR-019", "KR-025", "KR-012", "KR-034", "KR-044"];
     const metrics = [];
     for (const krId of ceoKrIds) {
@@ -114,5 +118,67 @@ export const ceoMetrics = query({
       }
     }
     return metrics;
+  },
+});
+
+export const add = mutation({
+  args: {
+    krId: v.string(),
+    krType: v.string(),
+    objectiveId: v.string(),
+    objective: v.string(),
+    department: v.string(),
+    keyResult: v.string(),
+    dataSource: v.string(),
+    baseline: v.optional(v.string()),
+    target: v.optional(v.string()),
+    status: v.string(),
+    owner: v.string(),
+    reportingTo: v.optional(v.string()),
+    reviewFrequency: v.string(),
+    how: v.optional(v.string()),
+    section: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const existing = await ctx.db.query("keyResults").withIndex("by_krId", (q) => q.eq("krId", args.krId)).first();
+    if (existing) throw new Error(`KR ${args.krId} already exists`);
+    return await ctx.db.insert("keyResults", args);
+  },
+});
+
+export const remove = mutation({
+  args: { id: v.id("keyResults") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.delete(args.id);
+  },
+});
+
+/** System-level auto-update for cron sync — bypasses auth */
+export const autoUpdate = internalMutation({
+  args: {
+    krId: v.string(),
+    actualCurrent: v.string(),
+    notes: v.optional(v.string()),
+    date: v.string(),
+    period: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const kr = await ctx.db
+      .query("keyResults")
+      .withIndex("by_krId", (q) => q.eq("krId", args.krId))
+      .first();
+    if (!kr) return;
+
+    await ctx.db.patch(kr._id, { actualCurrent: args.actualCurrent });
+
+    await ctx.db.insert("updateLog", {
+      date: args.date,
+      period: args.period,
+      krId: args.krId,
+      actual: parseFloat(args.actualCurrent) || 0,
+      notes: args.notes ?? "Auto-synced from GymMaster",
+    });
   },
 });

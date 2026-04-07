@@ -30,6 +30,7 @@ import {
 import { Shield, Plus, Pencil, Trash2 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DEPARTMENTS = [
   "Community", "F&B", "Finance", "Fitness", "Lab", "Marketing",
@@ -39,10 +40,10 @@ const DEPARTMENTS = [
   "Tech & CX", "Wellness Science", "WellnessLab",
 ];
 
-const roleColors: Record<string, string> = {
-  admin: "text-violet-600 dark:text-violet-400",
-  hod: "text-blue-600 dark:text-blue-400",
-  viewer: "text-muted-foreground",
+const roleBadgeStyles: Record<string, string> = {
+  admin: "bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-0.5 rounded-full",
+  hod: "bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full",
+  viewer: "bg-foreground/5 text-muted-foreground px-2 py-0.5 rounded-full",
 };
 
 export default function AdminPage() {
@@ -51,8 +52,18 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">LOADING...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-3 w-48 mt-2" />
+        </div>
+        <div className="rounded-lg border border-border/50 bg-card p-4">
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -82,7 +93,6 @@ export default function AdminPage() {
 
       <div className="rounded-lg border border-border/50 bg-card">
         <div className="overflow-x-auto">
-          <div className="min-w-[500px]">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
@@ -94,16 +104,16 @@ export default function AdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {profiles?.map((profile) => (
-                  <TableRow key={profile._id} className="group border-border/20 hover:bg-foreground/3">
+                {profiles?.map((profile, index) => (
+                  <TableRow key={profile._id} className={cn("group border-border/20 hover:bg-foreground/3", index % 2 === 1 && "bg-foreground/[0.02]")}>
                     <TableCell className="font-semibold text-[10px] font-mono">{profile.name.toUpperCase()}</TableCell>
-                    <TableCell className="text-[10px] text-muted-foreground font-mono">{profile.email}</TableCell>
+                    <TableCell className="text-[10px] text-muted-foreground font-mono max-w-[200px] truncate" title={profile.email}>{profile.email}</TableCell>
                     <TableCell>
-                      <span className={`text-[9px] font-mono tracking-wider font-medium ${roleColors[profile.role]}`}>
+                      <span className={`text-[9px] font-mono tracking-wider font-medium ${roleBadgeStyles[profile.role]}`}>
                         {profile.role.toUpperCase()}
                       </span>
                     </TableCell>
-                    <TableCell className="text-[10px] text-muted-foreground max-w-[300px] font-mono">
+                    <TableCell className="text-[10px] text-muted-foreground max-w-[300px] truncate font-mono" title={profile.departments.join(", ")}>
                       {profile.departments.length > 0 ? profile.departments.map((d: string) => d.substring(0, 3).toUpperCase()).join(", ") : "--"}
                     </TableCell>
                     <TableCell>
@@ -120,7 +130,6 @@ export default function AdminPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
         </div>
       </div>
     </div>
@@ -298,7 +307,7 @@ function EditProfileDialog({ profile }: { profile: any }) {
             </div>
           )}
           <div className="flex justify-between">
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Button variant="ghost" size="sm" onClick={handleDelete} className="hover:bg-red-500/10 hover:text-red-500 transition-colors duration-150">
               <Trash2 className="h-3 w-3 mr-1" /> DELETE
             </Button>
             <div className="flex gap-2">

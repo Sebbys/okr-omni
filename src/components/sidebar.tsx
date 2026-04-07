@@ -51,10 +51,11 @@ function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <Sun className="h-3.5 w-3.5 hidden dark:block" />
-      <Moon className="h-3.5 w-3.5 dark:hidden" />
+      <Sun aria-hidden="true" className="h-3.5 w-3.5 hidden dark:block" />
+      <Moon aria-hidden="true" className="h-3.5 w-3.5 dark:hidden" />
       <span className="dark:hidden">DARK_MODE</span>
       <span className="hidden dark:inline">LIGHT_MODE</span>
     </button>
@@ -83,7 +84,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 p-3">
+      <nav aria-label="Main navigation" className="flex-1 space-y-0.5 p-3">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -93,16 +94,16 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               transitionTypes={["nav-forward"]}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider transition-colors",
+                "group flex items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider transition-all duration-150",
                 isActive
-                  ? "bg-foreground/10 text-foreground"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  ? "bg-foreground/8 text-foreground border-l-2 border-foreground"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:translate-x-0.5"
               )}
             >
-              <item.icon className={cn("h-3.5 w-3.5", isActive ? "text-foreground" : "text-muted-foreground")} />
+              <item.icon aria-hidden="true" className={cn("h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-110", isActive ? "text-foreground" : "text-muted-foreground")} />
               {item.label.toUpperCase().replace(/\s+/g, "_")}
               {item.label === "GymMaster Live" && (
-                <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="ml-auto flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" aria-label="Live" />
               )}
             </Link>
           );
@@ -114,13 +115,13 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             transitionTypes={["nav-forward"]}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider transition-colors",
+              "group flex items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider transition-all duration-150",
               pathname === "/admin"
-                ? "bg-foreground/10 text-foreground"
-                : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                ? "bg-foreground/8 text-foreground border-l-2 border-foreground"
+                : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:translate-x-0.5"
             )}
           >
-            <Shield className={cn("h-3.5 w-3.5", pathname === "/admin" ? "text-foreground" : "text-muted-foreground")} />
+            <Shield aria-hidden="true" className={cn("h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-110", pathname === "/admin" ? "text-foreground" : "text-muted-foreground")} />
             USER_MGMT
           </Link>
         )}
@@ -128,10 +129,10 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-border/50 p-3 space-y-2">
         {profile && (
-          <div className="rounded-md bg-foreground/5 px-3 py-2">
-            <p className="text-[11px] font-medium font-mono tracking-wider truncate">{profile.name.toUpperCase()}</p>
-            <p className="text-[10px] text-muted-foreground truncate font-mono">{profile.email}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 font-mono tracking-wider">
+          <div className="rounded-md bg-foreground/5 px-3 py-2 hover:bg-foreground/8 transition-colors duration-150">
+            <p className="text-[11px] font-medium font-mono tracking-wider truncate" title={profile.name}>{profile.name.toUpperCase()}</p>
+            <p className="text-[10px] text-muted-foreground truncate font-mono" title={profile.email}>{profile.email}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 font-mono tracking-wider truncate" title={`${(roleLabels[profile.role] ?? profile.role).toUpperCase()}${profile.role === "hod" && profile.departments.length > 0 ? ` | ${profile.departments.join(", ")}` : ""}`}>
               {(roleLabels[profile.role] ?? profile.role).toUpperCase()}
               {profile.role === "hod" && profile.departments.length > 0 && (
                 <span> | {profile.departments.map((d: string) => d.substring(0, 3).toUpperCase()).join(", ")}</span>
@@ -142,9 +143,9 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <ThemeToggle />
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[11px] font-medium font-mono tracking-wider text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
           SIGN_OUT
         </button>
       </div>
@@ -155,7 +156,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 export function DesktopSidebar() {
   return (
     <ViewTransition name="sidebar" default="none">
-      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-60 border-r border-border/50 bg-background flex-col">
+      <aside aria-label="Sidebar" className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-60 border-r border-border/50 bg-background flex-col">
         <SidebarNav />
       </aside>
     </ViewTransition>
@@ -168,8 +169,8 @@ export function MobileHeader() {
   return (
     <div className="lg:hidden sticky top-0 z-40 flex h-12 items-center border-b border-border/50 bg-background/80 backdrop-blur-md px-4">
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger className="p-1.5 rounded-md hover:bg-foreground/5 transition-colors">
-          <Menu className="h-4 w-4 text-foreground" />
+        <SheetTrigger aria-label="Open navigation menu" className="p-1.5 rounded-md hover:bg-foreground/5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+          <Menu aria-hidden="true" className="h-4 w-4 text-foreground" />
         </SheetTrigger>
         <SheetContent side="left" showCloseButton={false} className="w-60 p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>

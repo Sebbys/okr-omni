@@ -23,6 +23,7 @@ import {
 import { MessageSquare, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CFRPage() {
   const [weekFilter, setWeekFilter] = useState<string>("all");
@@ -33,8 +34,23 @@ export default function CFRPage() {
 
   if (!cfrs || !krs) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">LOADING CFR...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-56 mt-2" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-border/50 bg-card p-5">
+              <Skeleton className="h-3 w-32 mb-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <Skeleton key={j} className="h-24 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -56,7 +72,7 @@ export default function CFRPage() {
       </div>
 
       {/* Week filter */}
-      <div className="rounded-lg border border-border/50 bg-card p-4">
+      <div className="border-b border-border/30 pb-4">
         <Select value={weekFilter} onValueChange={(v) => setWeekFilter(v ?? "all")}>
           <SelectTrigger className="w-[220px]">
             <SelectValue placeholder="FILTER BY WEEK" />
@@ -72,9 +88,12 @@ export default function CFRPage() {
 
       {/* CFR Cards */}
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-border/50 bg-card py-12 text-center">
-          <MessageSquare className="h-6 w-6 mx-auto text-muted-foreground/20 mb-3" />
-          <p className="text-muted-foreground font-mono text-[10px] tracking-wider">NO CFR ENTRIES YET</p>
+        <div className="rounded-lg border border-border/50 bg-card py-16 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-foreground/5 mb-4">
+            <MessageSquare className="h-5 w-5 text-muted-foreground/30" />
+          </div>
+          <p className="text-foreground/60 font-mono text-xs tracking-wider font-medium mb-1">NO CFR ENTRIES YET</p>
+          <p className="text-muted-foreground/50 font-mono text-[10px] tracking-wider">ADD AN ENTRY TO START TRACKING CONVERSATIONS, FEEDBACK & RECOGNITION</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -89,37 +108,37 @@ export default function CFRPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {cfr.whatMoved && (
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3">
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 border-l-3 border-l-emerald-500/30 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mb-1 font-mono tracking-widest">WHAT MOVED</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.whatMoved}</p>
                   </div>
                 )}
                 {cfr.blockers && (
-                  <div className="bg-red-500/5 border border-red-500/10 rounded-lg p-3">
+                  <div className="bg-red-500/5 border border-red-500/10 border-l-3 border-l-red-500/30 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-red-600 dark:text-red-400 mb-1 font-mono tracking-widest">BLOCKERS</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.blockers}</p>
                   </div>
                 )}
                 {cfr.supportNeeded && (
-                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3">
+                  <div className="bg-amber-500/5 border border-amber-500/10 border-l-3 border-l-amber-500/30 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-amber-600 dark:text-amber-400 mb-1 font-mono tracking-widest">SUPPORT NEEDED</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.supportNeeded}</p>
                   </div>
                 )}
                 {cfr.learnings && (
-                  <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3">
+                  <div className="bg-blue-500/5 border border-blue-500/10 border-l-3 border-l-blue-500/30 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 mb-1 font-mono tracking-widest">LEARNINGS</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.learnings}</p>
                   </div>
                 )}
                 {cfr.recognition && (
-                  <div className="bg-violet-500/5 border border-violet-500/10 rounded-lg p-3">
+                  <div className="bg-violet-500/5 border border-violet-500/10 border-l-3 border-l-violet-500/30 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-violet-600 dark:text-violet-400 mb-1 font-mono tracking-widest">RECOGNITION / WINS</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.recognition}</p>
                   </div>
                 )}
                 {cfr.nextActions && (
-                  <div className="bg-foreground/3 border border-border/30 rounded-lg p-3">
+                  <div className="bg-foreground/3 border border-border/30 border-l-3 border-l-foreground/20 rounded-lg p-3 hover:shadow-sm transition-shadow duration-200">
                     <p className="text-[9px] font-semibold text-foreground/60 mb-1 font-mono tracking-widest">NEXT ACTIONS</p>
                     <p className="text-[10px] text-foreground/70 font-mono">{cfr.nextActions}</p>
                   </div>

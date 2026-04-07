@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Omni OKR Dashboard",
   description: "OKR tracking and GymMaster integration for Omni Wellness Club",
+  other: {
+    "color-scheme": "light dark",
+  },
 };
 
 export default function RootLayout({

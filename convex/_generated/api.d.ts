@@ -11,9 +11,13 @@
 import type * as auth from "../auth.js";
 import type * as authSetup from "../authSetup.js";
 import type * as cfr from "../cfr.js";
+import type * as crons from "../crons.js";
+import type * as gymMasterSnapshot from "../gymMasterSnapshot.js";
+import type * as gymMasterSync from "../gymMasterSync.js";
 import type * as gymmaster from "../gymmaster.js";
 import type * as http from "../http.js";
 import type * as keyResults from "../keyResults.js";
+import type * as krAutoMapping from "../krAutoMapping.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lists from "../lists.js";
 import type * as metricDefinitions from "../metricDefinitions.js";
@@ -33,9 +37,13 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authSetup: typeof authSetup;
   cfr: typeof cfr;
+  crons: typeof crons;
+  gymMasterSnapshot: typeof gymMasterSnapshot;
+  gymMasterSync: typeof gymMasterSync;
   gymmaster: typeof gymmaster;
   http: typeof http;
   keyResults: typeof keyResults;
+  krAutoMapping: typeof krAutoMapping;
   "lib/auth": typeof lib_auth;
   lists: typeof lists;
   metricDefinitions: typeof metricDefinitions;

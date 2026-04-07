@@ -14,25 +14,47 @@ import {
 } from "@/components/ui/table";
 import { Target, CheckCircle2, AlertTriangle, XCircle, Eye, HelpCircle } from "lucide-react";
 import { getStatusColor } from "@/lib/gymmaster";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   const stats = useQuery(api.keyResults.dashboardStats);
 
   if (!stats) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">LOADING_DASHBOARD...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-64 mt-2" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-border/50 bg-card p-4">
+              <Skeleton className="h-3 w-3 mb-3" />
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-2 w-20 mt-2" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border border-border/50 bg-card p-5">
+          <Skeleton className="h-3 w-40 mb-4" />
+          <Skeleton className="h-2 w-full rounded-full mb-3" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   const summaryCards = [
-    { label: "TOTAL_KRS", value: stats.total, icon: Target, accent: "text-foreground" },
-    { label: "ACHIEVED", value: stats.achieved, icon: CheckCircle2, accent: "text-emerald-600 dark:text-emerald-400" },
-    { label: "ON_TRACK", value: stats.onTrack, icon: Eye, accent: "text-blue-600 dark:text-blue-400" },
-    { label: "WATCH", value: stats.watch, icon: AlertTriangle, accent: "text-amber-600 dark:text-amber-400" },
-    { label: "OFF_TRACK", value: stats.offTrack, icon: XCircle, accent: "text-red-600 dark:text-red-400" },
-    { label: "NO_DATA", value: stats.noData, icon: HelpCircle, accent: "text-muted-foreground" },
+    { label: "TOTAL_KRS", value: stats.total, icon: Target, accent: "text-foreground", border: "border-t-foreground/40" },
+    { label: "ACHIEVED", value: stats.achieved, icon: CheckCircle2, accent: "text-emerald-600 dark:text-emerald-400", border: "border-t-emerald-500" },
+    { label: "ON_TRACK", value: stats.onTrack, icon: Eye, accent: "text-blue-600 dark:text-blue-400", border: "border-t-blue-500" },
+    { label: "WATCH", value: stats.watch, icon: AlertTriangle, accent: "text-amber-600 dark:text-amber-400", border: "border-t-amber-500" },
+    { label: "OFF_TRACK", value: stats.offTrack, icon: XCircle, accent: "text-red-600 dark:text-red-400", border: "border-t-red-500" },
+    { label: "NO_DATA", value: stats.noData, icon: HelpCircle, accent: "text-muted-foreground", border: "border-t-muted-foreground/40" },
   ];
 
   return (
@@ -45,12 +67,12 @@ export default function DashboardPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {summaryCards.map((card) => (
-          <div key={card.label} className="rounded-lg border border-border/50 bg-card p-4">
+        {summaryCards.map((card, i) => (
+          <div key={card.label} className={`rounded-lg border border-border/50 border-t-2 ${card.border} bg-card p-4 animate-fade-in-up stagger-${i + 1}`}>
             <div className="flex items-center gap-2 mb-3">
               <card.icon className={`h-3.5 w-3.5 ${card.accent}`} />
             </div>
-            <div className={`text-2xl font-bold font-mono ${card.accent}`}>{card.value}</div>
+            <div className={`text-2xl font-bold font-mono animate-count-up ${card.accent}`}>{card.value}</div>
             <p className="text-[9px] text-muted-foreground mt-1 font-mono tracking-widest">{card.label}</p>
           </div>
         ))}
@@ -59,21 +81,46 @@ export default function DashboardPage() {
       {/* Status Distribution */}
       <div className="rounded-lg border border-border/50 bg-card p-5">
         <h2 className="text-[10px] font-mono tracking-widest text-muted-foreground mb-4">STATUS DISTRIBUTION</h2>
-        <div className="flex h-2 rounded-full overflow-hidden gap-px bg-background">
+        <div className="flex h-2 rounded-full gap-px bg-background relative">
           {stats.achieved > 0 && (
-            <div className="bg-emerald-500/80 transition-all rounded-full" style={{ width: `${(stats.achieved / stats.total) * 100}%` }} />
+            <div className="relative group" style={{ width: `${(stats.achieved / stats.total) * 100}%` }}>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-mono bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                {stats.achieved} ({((stats.achieved / stats.total) * 100).toFixed(0)}%)
+              </div>
+              <div className="bg-emerald-500/80 transition-all duration-700 ease-out rounded-full h-full w-full" />
+            </div>
           )}
           {stats.onTrack > 0 && (
-            <div className="bg-blue-500/80 transition-all rounded-full" style={{ width: `${(stats.onTrack / stats.total) * 100}%` }} />
+            <div className="relative group" style={{ width: `${(stats.onTrack / stats.total) * 100}%` }}>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-mono bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                {stats.onTrack} ({((stats.onTrack / stats.total) * 100).toFixed(0)}%)
+              </div>
+              <div className="bg-blue-500/80 transition-all duration-700 ease-out rounded-full h-full w-full" />
+            </div>
           )}
           {stats.watch > 0 && (
-            <div className="bg-amber-500/80 transition-all rounded-full" style={{ width: `${(stats.watch / stats.total) * 100}%` }} />
+            <div className="relative group" style={{ width: `${(stats.watch / stats.total) * 100}%` }}>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-mono bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                {stats.watch} ({((stats.watch / stats.total) * 100).toFixed(0)}%)
+              </div>
+              <div className="bg-amber-500/80 transition-all duration-700 ease-out rounded-full h-full w-full" />
+            </div>
           )}
           {stats.offTrack > 0 && (
-            <div className="bg-red-500/80 transition-all rounded-full" style={{ width: `${(stats.offTrack / stats.total) * 100}%` }} />
+            <div className="relative group" style={{ width: `${(stats.offTrack / stats.total) * 100}%` }}>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-mono bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                {stats.offTrack} ({((stats.offTrack / stats.total) * 100).toFixed(0)}%)
+              </div>
+              <div className="bg-red-500/80 transition-all duration-700 ease-out rounded-full h-full w-full" />
+            </div>
           )}
           {stats.noData > 0 && (
-            <div className="bg-muted-foreground/20 transition-all rounded-full" style={{ width: `${(stats.noData / stats.total) * 100}%` }} />
+            <div className="relative group" style={{ width: `${(stats.noData / stats.total) * 100}%` }}>
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-mono bg-foreground text-background px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+                {stats.noData} ({((stats.noData / stats.total) * 100).toFixed(0)}%)
+              </div>
+              <div className="bg-muted-foreground/20 transition-all duration-700 ease-out rounded-full h-full w-full" />
+            </div>
           )}
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3">
@@ -88,8 +135,7 @@ export default function DashboardPage() {
       {/* Objective Breakdown */}
       <div className="rounded-lg border border-border/50 bg-card p-5">
         <h2 className="text-[10px] font-mono tracking-widest text-muted-foreground mb-4">OBJECTIVE BREAKDOWN</h2>
-        <div className="overflow-x-auto -mx-5">
-          <div className="min-w-[700px] px-5">
+        <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
@@ -106,10 +152,10 @@ export default function DashboardPage() {
               <TableBody>
                 {stats.objectiveStats
                   .sort((a: any, b: any) => a.objectiveId.localeCompare(b.objectiveId, undefined, { numeric: true }))
-                  .map((obj: any) => (
-                    <TableRow key={obj.objectiveId} className="border-border/20 hover:bg-foreground/3">
+                  .map((obj: any, idx: number) => (
+                    <TableRow key={obj.objectiveId} className={`border-border/20 hover:bg-foreground/3 ${idx % 2 === 0 ? "bg-foreground/[0.02]" : ""}`}>
                       <TableCell className="font-mono text-[10px] font-semibold text-foreground">{obj.objectiveId}</TableCell>
-                      <TableCell className="text-[10px] max-w-xs truncate font-mono text-muted-foreground">{obj.objective}</TableCell>
+                      <TableCell className="text-[10px] max-w-xs truncate font-mono text-muted-foreground" title={obj.objective}>{obj.objective}</TableCell>
                       <TableCell className="text-center font-semibold font-mono text-[10px]">{obj.total}</TableCell>
                       <TableCell className="text-center">
                         {obj.achieved > 0 ? <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-semibold">{obj.achieved}</span> : <span className="text-muted-foreground/30 font-mono text-[10px]">0</span>}
@@ -128,7 +174,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1 bg-foreground/5 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-foreground/40 rounded-full transition-all"
+                                className="h-full bg-foreground/40 rounded-full transition-all duration-500 ease-out"
                                 style={{ width: `${Math.max(0, Math.min(100, obj.avgProgress * 100))}%` }}
                               />
                             </div>
@@ -144,7 +190,6 @@ export default function DashboardPage() {
                   ))}
               </TableBody>
             </Table>
-          </div>
         </div>
       </div>
 
@@ -159,12 +204,11 @@ export default function DashboardPage() {
 
 function OffTrackItems() {
   const krs = useQuery(api.keyResults.list, { status: "Off track" });
-  if (!krs) return <div className="text-[10px] text-muted-foreground font-mono tracking-wider animate-pulse">LOADING...</div>;
+  if (!krs) return <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => (<Skeleton key={i} className="h-8 w-full" />))}</div>;
   if (krs.length === 0) return <div className="text-[10px] text-muted-foreground/50 font-mono tracking-wider">NO OFF TRACK ITEMS</div>;
 
   return (
-    <div className="overflow-x-auto -mx-5">
-      <div className="min-w-[500px] px-5">
+    <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border/30 hover:bg-transparent">
@@ -175,11 +219,11 @@ function OffTrackItems() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {krs.map((kr) => (
-              <TableRow key={kr._id} className="border-border/20 hover:bg-foreground/3">
+            {krs.map((kr, idx) => (
+              <TableRow key={kr._id} className={`border-border/20 hover:bg-foreground/3 ${idx % 2 === 0 ? "bg-foreground/[0.02]" : ""}`}>
                 <TableCell className="font-mono text-[10px] font-semibold">{kr.krId}</TableCell>
-                <TableCell className="text-[10px] font-mono text-muted-foreground">{kr.keyResult}</TableCell>
-                <TableCell className="text-[10px] font-mono text-muted-foreground">{kr.owner}</TableCell>
+                <TableCell className="text-[10px] font-mono text-muted-foreground max-w-xs truncate" title={kr.keyResult}>{kr.keyResult}</TableCell>
+                <TableCell className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{kr.owner}</TableCell>
                 <TableCell>
                   <span className="text-[9px] font-mono tracking-wider text-red-600 dark:text-red-400 font-medium">{kr.status?.toUpperCase().replace(/\s+/g, "_")}</span>
                 </TableCell>
@@ -187,7 +231,6 @@ function OffTrackItems() {
             ))}
           </TableBody>
         </Table>
-      </div>
     </div>
   );
 }

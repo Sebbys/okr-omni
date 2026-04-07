@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -16,8 +17,18 @@ export default function MetricDefinitionsPage() {
 
   if (!metrics) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">LOADING METRIC DEFINITIONS...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-3 w-72 mt-2" />
+        </div>
+        <div className="rounded-lg border border-border/50 bg-card p-5">
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -30,8 +41,7 @@ export default function MetricDefinitionsPage() {
       </div>
 
       <div className="rounded-lg border border-border/50 bg-card p-5">
-        <div className="overflow-x-auto -mx-5">
-          <div className="min-w-[600px] px-5">
+        <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
@@ -56,7 +66,6 @@ export default function MetricDefinitionsPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
         </div>
       </div>
 

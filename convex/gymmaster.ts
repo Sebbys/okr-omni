@@ -1,4 +1,4 @@
-import { action, query, mutation } from "./_generated/server";
+import { action, internalAction, query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const GM_BASE = "https://omni.gymmasteronline.com/api/v2";
@@ -114,5 +114,66 @@ export const fetchKpiCategories = action({
     });
     const data = await response.json();
     return data.result;
+  },
+});
+
+// --- Internal variants for cron/system use (no auth required) ---
+
+export const internalFetchKpiFields = internalAction({
+  args: {
+    fields: v.array(v.string()),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const response = await fetch(`${GM_BASE}/report/kpi/fields`, {
+      method: "POST",
+      headers: {
+        "X-GM-API-KEY": STAFF_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        date: { start: args.startDate, end: args.endDate },
+        selected_fields: args.fields,
+      }),
+    });
+    const data = await response.json();
+    return data.result;
+  },
+});
+
+export const internalFetchDashboard = internalAction({
+  args: { endpoint: v.string() },
+  handler: async (_ctx, args) => {
+    const response = await fetch(
+      `${GM_BASE}/dashboard?endpoint=${args.endpoint}`,
+      { headers: { "X-GM-API-KEY": STAFF_API_KEY } },
+    );
+    const data = await response.json();
+    return data.result;
+  },
+});
+
+export const internalFetchReport = internalAction({
+  args: {
+    reportId: v.number(),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const response = await fetch(`${GM_BASE}/report/standard_report`, {
+      method: "POST",
+      headers: {
+        "X-GM-API-KEY": STAFF_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        start_date: args.startDate,
+        end_date: args.endDate,
+        report_id: args.reportId,
+      }),
+    });
+    const data = await response.json();
+    return data.result ?? [];
   },
 });

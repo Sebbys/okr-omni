@@ -32,6 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UpdateLogPage() {
   const [search, setSearch] = useState("");
@@ -43,8 +44,21 @@ export default function UpdateLogPage() {
 
   if (!logs || !krs) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">LOADING UPDATE LOG...</div>
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-64 mt-2" />
+        </div>
+        <div className="rounded-lg border border-border/50 bg-card p-4">
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <div className="rounded-lg border border-border/50 bg-card p-4">
+          <div className="space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -106,7 +120,6 @@ export default function UpdateLogPage() {
       <div className="rounded-lg border border-border/50 bg-card">
         <ScrollArea className="max-h-[calc(100vh-300px)]">
           <div className="overflow-x-auto">
-            <div className="min-w-[500px]">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/30 hover:bg-transparent">
@@ -121,14 +134,14 @@ export default function UpdateLogPage() {
                   {filtered.map((log) => (
                     <TableRow key={log._id} className="border-border/20 hover:bg-foreground/3">
                       <TableCell className="font-mono text-[10px] font-semibold">{log.date}</TableCell>
-                      <TableCell className="text-[10px] font-mono text-muted-foreground">{log.period}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground truncate max-w-[200px]" title={log.period}>{log.period}</TableCell>
                       <TableCell className="font-mono text-[10px] font-semibold">{log.krId}</TableCell>
                       <TableCell className="font-semibold text-[10px] font-mono">
                         {typeof log.actual === "number" && log.actual > 10000
                           ? new Intl.NumberFormat("en-US").format(log.actual)
                           : log.actual}
                       </TableCell>
-                      <TableCell className="text-[10px] text-muted-foreground font-mono">{log.notes || "--"}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground font-mono max-w-[300px] truncate" title={log.notes || ""}>{log.notes || "--"}</TableCell>
                     </TableRow>
                   ))}
                   {filtered.length === 0 && (
@@ -140,13 +153,55 @@ export default function UpdateLogPage() {
                   )}
                 </TableBody>
               </Table>
-            </div>
           </div>
         </ScrollArea>
       </div>
     </div>
   );
 }
+
+function generatePeriods() {
+  const year = new Date().getFullYear();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const periods: { value: string; label: string }[] = [];
+
+  // Generate weekly periods
+  for (let week = 1; week <= 52; week++) {
+    // Estimate month from week number
+    const approxDay = (week - 1) * 7 + 4;
+    const d = new Date(year, 0, approxDay);
+    const month = months[d.getMonth()];
+    const quarter = `Q${Math.ceil((d.getMonth() + 1) / 3)}`;
+    const wStr = String(week).padStart(2, "0");
+    periods.push({
+      value: `${year}-W${wStr} (${month} | ${quarter})`,
+      label: `W${wStr} — ${month} | ${quarter}`,
+    });
+  }
+
+  // Generate monthly periods
+  for (let m = 0; m < 12; m++) {
+    const quarter = `Q${Math.ceil((m + 1) / 3)}`;
+    periods.push({
+      value: `${year}-${months[m]} (${quarter})`,
+      label: `${months[m]} ${year} | ${quarter}`,
+    });
+  }
+
+  // Generate quarterly periods
+  for (let q = 1; q <= 4; q++) {
+    const startMonth = months[(q - 1) * 3];
+    const endMonth = months[q * 3 - 1];
+    periods.push({
+      value: `${year}-Q${q} (${startMonth}–${endMonth})`,
+      label: `Q${q} ${year} — ${startMonth}–${endMonth}`,
+    });
+  }
+
+  return periods;
+}
+
+const PERIODS = generatePeriods();
 
 function AddUpdateDialog({ krs }: { krs: any[] }) {
   const addLog = useMutation(api.updateLog.add);
@@ -190,20 +245,36 @@ function AddUpdateDialog({ krs }: { krs: any[] }) {
             </div>
             <div>
               <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">PERIOD</label>
-              <Input placeholder="e.g. 2026-W12 (Mar | Q1)" value={period} onChange={(e) => setPeriod(e.target.value)} />
+              <Select value={period} onValueChange={(v) => v && setPeriod(v)}>
+                <SelectTrigger><SelectValue placeholder="Select period..." /></SelectTrigger>
+                <SelectContent className="max-h-[300px] min-w-[280px]">
+                  <SelectItem value="_q" disabled><span className="text-[9px] font-mono tracking-widest font-semibold">QUARTERLY</span></SelectItem>
+                  {PERIODS.filter((p) => p.value.includes("-Q")).map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                  <SelectItem value="_m" disabled><span className="text-[9px] font-mono tracking-widest font-semibold">MONTHLY</span></SelectItem>
+                  {PERIODS.filter((p) => p.value.match(/-[A-Z][a-z]{2} /)).map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                  <SelectItem value="_w" disabled><span className="text-[9px] font-mono tracking-widest font-semibold">WEEKLY</span></SelectItem>
+                  {PERIODS.filter((p) => p.value.includes("-W")).map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">KR ID</label>
-              <Select value={krId} onValueChange={(v) => setKrId(v ?? "")}>
+              <Select value={krId} onValueChange={(v) => v && setKrId(v)}>
                 <SelectTrigger><SelectValue placeholder="Select KR" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[350px]">
                   {krs
                     .sort((a, b) => a.krId.localeCompare(b.krId, undefined, { numeric: true }))
                     .map((kr) => (
                       <SelectItem key={kr._id} value={kr.krId}>
-                        {kr.krId} - {kr.keyResult.substring(0, 30)}...
+                        {kr.krId} - {kr.keyResult}
                       </SelectItem>
                     ))}
                 </SelectContent>

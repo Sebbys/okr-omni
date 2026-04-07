@@ -1,16 +1,34 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ViewTransition } from "react";
+import { useConvexAuth } from "convex/react";
 import { Sidebar } from "@/components/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isLoading, isAuthenticated } = useConvexAuth();
   const isLoginPage = pathname === "/login";
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !isLoginPage) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, isLoginPage, router]);
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen" role="status" aria-live="polite">
+        <div className="animate-pulse text-muted-foreground font-mono text-[10px] tracking-widest">AUTHENTICATING...</div>
+      </div>
+    );
   }
 
   return (

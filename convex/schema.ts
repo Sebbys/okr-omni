@@ -78,10 +78,31 @@ export default defineSchema({
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),
 
-  // Cache GymMaster data
+  // Cache GymMaster data (5-min TTL for live page)
   gymMasterCache: defineTable({
     endpoint: v.string(),
     data: v.string(), // JSON stringified
     fetchedAt: v.number(),
   }).index("by_endpoint", ["endpoint"]),
+
+  // Monthly GymMaster metric snapshots for OKR baselines
+  gymMasterSnapshot: defineTable({
+    date: v.string(), // "2026-04" monthly period
+    metricKey: v.string(), // "kpi.current_members", "computed.visits_per_member", "report.r131.count"
+    value: v.number(),
+    metadata: v.optional(v.string()), // JSON for breakdowns (segments, reasons, etc.)
+    fetchedAt: v.number(),
+  })
+    .index("by_date_and_metricKey", ["date", "metricKey"])
+    .index("by_metricKey", ["metricKey"]),
+
+  // Maps KRs to auto-synced GymMaster metrics
+  krAutoMapping: defineTable({
+    krId: v.string(),
+    metricKey: v.string(),
+    transform: v.string(), // "direct" | "percentage" | "ratio"
+    enabled: v.boolean(),
+  })
+    .index("by_krId", ["krId"])
+    .index("by_metricKey", ["metricKey"]),
 });
