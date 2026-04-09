@@ -85,10 +85,10 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_endpoint", ["endpoint"]),
 
-  // Monthly GymMaster metric snapshots for OKR baselines
+  // Monthly governed OKR snapshots imported from daily-dashboard
   gymMasterSnapshot: defineTable({
     date: v.string(), // "2026-04" monthly period
-    metricKey: v.string(), // "kpi.current_members", "computed.visits_per_member", "report.r131.count"
+    metricKey: v.string(), // "wmam", "long_term_membership_mix", "visits_per_member_per_week"
     value: v.number(),
     metadata: v.optional(v.string()), // JSON for breakdowns (segments, reasons, etc.)
     fetchedAt: v.number(),
@@ -96,7 +96,7 @@ export default defineSchema({
     .index("by_date_and_metricKey", ["date", "metricKey"])
     .index("by_metricKey", ["metricKey"]),
 
-  // Maps KRs to auto-synced GymMaster metrics
+  // Legacy table kept for compatibility; governed KR sync no longer uses these mappings
   krAutoMapping: defineTable({
     krId: v.string(),
     metricKey: v.string(),

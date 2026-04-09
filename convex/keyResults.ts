@@ -1,6 +1,19 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth, requireAdmin, requireEditDepartment } from "./lib/auth";
+import { requireAdmin, requireEditDepartment } from "./lib/auth";
+
+type ObjectiveStatsAccumulator = Record<string, {
+  objectiveId: string;
+  objective: string;
+  total: number;
+  achieved: number;
+  onTrack: number;
+  watch: number;
+  offTrack: number;
+  noData: number;
+  totalProgress: number;
+  progressCount: number;
+}>;
 
 export const list = query({
   args: {
@@ -52,7 +65,7 @@ export const update = mutation({
     await requireEditDepartment(ctx, kr.department);
 
     const { id, ...updates } = args;
-    const filtered = Object.fromEntries(Object.entries(updates).filter(([_, v]) => v !== undefined));
+    const filtered = Object.fromEntries(Object.entries(updates).filter(([, value]) => value !== undefined));
     await ctx.db.patch(id, filtered);
   },
 });
@@ -70,7 +83,7 @@ export const dashboardStats = query({
     const offTrack = allKrs.filter((kr) => kr.status === "Off track").length;
     const noData = allKrs.filter((kr) => kr.status === "No data").length;
 
-    const byObjective = allKrs.reduce((acc, kr) => {
+    const byObjective = allKrs.reduce<ObjectiveStatsAccumulator>((acc, kr) => {
       const key = kr.objectiveId;
       if (!acc[key]) {
         acc[key] = { objectiveId: key, objective: kr.objective, total: 0, achieved: 0, onTrack: 0, watch: 0, offTrack: 0, noData: 0, totalProgress: 0, progressCount: 0 };
@@ -86,9 +99,9 @@ export const dashboardStats = query({
         acc[key].progressCount++;
       }
       return acc;
-    }, {} as Record<string, any>);
+    }, {});
 
-    const objectiveStats = Object.values(byObjective).map((obj: any) => ({
+    const objectiveStats = Object.values(byObjective).map((obj) => ({
       ...obj,
       avgProgress: obj.progressCount > 0 ? obj.totalProgress / obj.progressCount : null,
     }));
@@ -160,6 +173,7 @@ export const autoUpdate = internalMutation({
   args: {
     krId: v.string(),
     actualCurrent: v.string(),
+    status: v.optional(v.string()),
     notes: v.optional(v.string()),
     date: v.string(),
     period: v.string(),
@@ -171,14 +185,29 @@ export const autoUpdate = internalMutation({
       .first();
     if (!kr) return;
 
-    await ctx.db.patch(kr._id, { actualCurrent: args.actualCurrent });
+    const patch: { actualCurrent: string; status?: string } = { actualCurrent: args.actualCurrent };
+    if (args.status !== undefined) patch.status = args.status;
+    await ctx.db.patch(kr._id, patch);
 
-    await ctx.db.insert("updateLog", {
-      date: args.date,
-      period: args.period,
-      krId: args.krId,
-      actual: parseFloat(args.actualCurrent) || 0,
-      notes: args.notes ?? "Auto-synced from GymMaster",
-    });
+    const existingLog = (await ctx.db
+      .query("updateLog")
+      .withIndex("by_krId", (q) => q.eq("krId", args.krId))
+      .collect())
+      .find((row) => row.date === args.date && row.period === args.period);
+
+    if (existingLog) {
+      await ctx.db.patch(existingLog._id, {
+        actual: parseFloat(args.actualCurrent) || 0,
+        notes: args.notes ?? existingLog.notes ?? "Auto-synced from governed feed",
+      });
+    } else {
+      await ctx.db.insert("updateLog", {
+        date: args.date,
+        period: args.period,
+        krId: args.krId,
+        actual: parseFloat(args.actualCurrent) || 0,
+        notes: args.notes ?? "Auto-synced from governed feed",
+      });
+    }
   },
 });
