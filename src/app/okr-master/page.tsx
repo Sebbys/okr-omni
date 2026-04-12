@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -29,10 +30,11 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Pencil, Plus } from "lucide-react";
+import { Lock, Search, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isGovernedPublishedKr } from "@/lib/governed-krs";
 
 export default function OKRMasterPage() {
   const [search, setSearch] = useState("");
@@ -43,6 +45,8 @@ export default function OKRMasterPage() {
 
   const allKrs = useQuery(api.keyResults.list, {});
   const objectives = useQuery(api.objectives.list);
+  const governedPeriods = useQuery(api.gymMasterSnapshot.listPeriods);
+  const activeOverrides = useQuery(api.governedOverrides.listActive, {});
 
   if (!allKrs || !objectives) {
     return (
@@ -183,9 +187,24 @@ export default function OKRMasterPage() {
               {filtered.map((kr, index) => (
                 <TableRow key={kr._id} className={cn("group border-border/20 hover:bg-foreground/5", index % 2 === 0 && "bg-foreground/[0.02]")}>
                   <TableCell className="w-10 px-2">
-                    {canEditDepartment(kr.department) && <KREditDialog kr={kr} />}
+                    {canEditDepartment(kr.department) && (
+                      <KREditDialog
+                        kr={kr}
+                        governedPeriods={governedPeriods ?? []}
+                        activeOverride={(activeOverrides ?? []).find((override) => override.krId === kr.krId && override.active)}
+                      />
+                    )}
                   </TableCell>
-                  <TableCell className="font-mono text-[10px] font-semibold text-foreground whitespace-nowrap">{kr.krId}</TableCell>
+                  <TableCell className="font-mono text-[10px] font-semibold text-foreground whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span>{kr.krId}</span>
+                      {isGovernedPublishedKr(kr.krId) && (
+                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-[8px] text-emerald-600 dark:text-emerald-400">
+                          GOVERNED
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-[10px] text-muted-foreground">{kr.objectiveId}</TableCell>
                   <TableCell className="text-[10px] font-mono text-muted-foreground max-w-[300px]" title={kr.keyResult}>
                     <span className="line-clamp-2">{kr.keyResult}</span>
@@ -426,6 +445,8 @@ function AddKRDialog({ objectives }: { objectives: any[] }) {
                   <SelectItem value="Weekly">WEEKLY</SelectItem>
                   <SelectItem value="Monthly">MONTHLY</SelectItem>
                   <SelectItem value="Quarterly">QUARTERLY</SelectItem>
+                  <SelectItem value="Annual">ANNUAL</SelectItem>
+                  <SelectItem value="Manual">MANUAL</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -465,26 +486,79 @@ function AddKRDialog({ objectives }: { objectives: any[] }) {
 
 // --- Edit KR Dialog ---
 
-function KREditDialog({ kr }: { kr: any }) {
+function KREditDialog({
+  kr,
+  governedPeriods,
+  activeOverride,
+}: {
+  kr: any;
+  governedPeriods: string[];
+  activeOverride?: any;
+}) {
   const updateKR = useMutation(api.keyResults.update);
+  const applyOverride = useMutation(api.governedOverrides.applyOverride);
+  const clearOverride = useMutation(api.governedOverrides.clearOverride);
   const { isAdmin } = useCurrentUser();
+  const governed = isGovernedPublishedKr(kr.krId);
   const [actual, setActual] = useState(kr.actualCurrent || "");
   const [target, setTarget] = useState(kr.target || "");
   const [baseline, setBaseline] = useState(kr.baseline || "");
   const [status, setStatus] = useState(kr.status);
   const [notes, setNotes] = useState(kr.notes || "");
+  const [overridePeriod, setOverridePeriod] = useState(activeOverride?.period || governedPeriods[0] || "");
+  const [overrideValue, setOverrideValue] = useState(activeOverride ? String(activeOverride.value) : kr.actualCurrent || "");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   const handleSave = async () => {
-    await updateKR({
-      id: kr._id,
-      actualCurrent: actual || undefined,
-      target: target !== (kr.target || "") ? target : undefined,
-      baseline: baseline !== (kr.baseline || "") ? baseline : undefined,
-      status: status !== kr.status ? status : undefined,
-      notes: notes !== (kr.notes || "") ? notes : undefined,
-    });
-    setOpen(false);
+    try {
+      setError(null);
+      await updateKR({
+        id: kr._id,
+        actualCurrent: actual || undefined,
+        target: target !== (kr.target || "") ? target : undefined,
+        baseline: baseline !== (kr.baseline || "") ? baseline : undefined,
+        status: status !== kr.status ? status : undefined,
+        notes: notes !== (kr.notes || "") ? notes : undefined,
+      });
+      setOpen(false);
+    } catch (e: any) {
+      setError(e.message || "Failed to update key result");
+    }
+  };
+
+  const handleApplyOverride = async () => {
+    if (!overridePeriod || !overrideValue || !overrideReason) {
+      setError("Override period, value, and reason are required.");
+      return;
+    }
+    try {
+      setError(null);
+      await applyOverride({
+        krId: kr.krId,
+        period: overridePeriod,
+        value: parseFloat(overrideValue),
+        reason: overrideReason,
+      });
+      setOpen(false);
+    } catch (e: any) {
+      setError(e.message || "Failed to apply override.");
+    }
+  };
+
+  const handleClearOverride = async () => {
+    if (!activeOverride) return;
+    try {
+      setError(null);
+      await clearOverride({
+        krId: kr.krId,
+        period: activeOverride.period,
+      });
+      setOpen(false);
+    } catch (e: any) {
+      setError(e.message || "Failed to clear override.");
+    }
   };
 
   return (
@@ -496,14 +570,49 @@ function KREditDialog({ kr }: { kr: any }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <span className="font-mono text-[10px] bg-foreground/10 px-2 py-0.5 rounded font-semibold">{kr.krId}</span>
+            {governed && (
+              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-[8px] text-emerald-600 dark:text-emerald-400">
+                PUBLISHED_GOVERNED
+              </Badge>
+            )}
             UPDATE KEY RESULT
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
+          {error && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
           <div>
             <p className="text-[10px] font-medium mb-1 font-mono">{kr.keyResult}</p>
             <p className="text-[9px] text-muted-foreground font-mono tracking-wider">{kr.department.toUpperCase().replace(/\s+/g, "_")} | OWNER: {kr.owner.toUpperCase()}</p>
           </div>
+          {governed && (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-[10px] font-semibold font-mono tracking-wider text-emerald-700 dark:text-emerald-300">
+                  GOVERNED VALUE PATH
+                </p>
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                Actual and status are locked to the published monthly governed snapshot from <span className="text-foreground">daily-dashboard</span>.
+                Only admins can apply a traced exception.
+              </p>
+              {activeOverride && (
+                <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                    <span className="text-[9px] font-mono tracking-wider text-amber-700 dark:text-amber-300">
+                      ACTIVE_OVERRIDE {activeOverride.period} · {activeOverride.value}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{activeOverride.reason}</p>
+                </div>
+              )}
+            </div>
+          )}
           {kr.how && (
             <div className="bg-foreground/5 rounded-lg p-3">
               <p className="text-[9px] font-semibold text-muted-foreground mb-1 font-mono tracking-widest">HOW</p>
@@ -525,11 +634,16 @@ function KREditDialog({ kr }: { kr: any }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">ACTUAL CURRENT</label>
-              <Input value={actual} onChange={(e) => setActual(e.target.value)} placeholder="Enter value" />
+              <Input
+                value={actual}
+                onChange={(e) => setActual(e.target.value)}
+                placeholder="Enter value"
+                disabled={governed}
+              />
             </div>
             <div>
               <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">STATUS</label>
-              <Select value={status} onValueChange={(v) => setStatus(v ?? kr.status)}>
+              <Select value={status} onValueChange={(v) => setStatus(v ?? kr.status)} disabled={governed}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="No data">NO DATA</SelectItem>
@@ -543,11 +657,63 @@ function KREditDialog({ kr }: { kr: any }) {
           </div>
           <div>
             <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">NOTES</label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
-          </div>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+          {governed && isAdmin && (
+            <div className="rounded-xl border border-border/50 bg-foreground/[0.02] p-4">
+              <div className="flex items-center gap-2">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-[10px] font-semibold font-mono tracking-wider">ADMIN OVERRIDE</p>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Use only when the governed value is wrong and you need a persistent approved exception.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">OVERRIDE PERIOD</label>
+                  <Select value={overridePeriod} onValueChange={(v) => setOverridePeriod(v ?? overridePeriod)}>
+                    <SelectTrigger><SelectValue placeholder="Select period" /></SelectTrigger>
+                    <SelectContent>
+                      {governedPeriods.map((period) => (
+                        <SelectItem key={period} value={period}>{period}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">OVERRIDE VALUE</label>
+                  <Input value={overrideValue} onChange={(e) => setOverrideValue(e.target.value)} placeholder="Override value" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">APPROVAL REASON</label>
+                <Textarea
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  rows={3}
+                  placeholder="Why this governed exception is necessary"
+                />
+              </div>
+              <div className="mt-4 flex justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearOverride}
+                  disabled={!activeOverride}
+                >
+                  CLEAR ACTIVE OVERRIDE
+                </Button>
+                <Button size="sm" onClick={handleApplyOverride}>
+                  APPLY OVERRIDE
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setOpen(false)}>CANCEL</Button>
-            <Button size="sm" onClick={handleSave}>SAVE</Button>
+            <Button size="sm" onClick={handleSave} disabled={governed && !isAdmin}>
+              SAVE
+            </Button>
           </div>
         </div>
       </DialogContent>

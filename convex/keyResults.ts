@@ -1,6 +1,7 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAdmin, requireEditDepartment } from "./lib/auth";
+import { isGovernedPublishedKr, parseNumericValue } from "./lib/governedMetrics";
 
 type ObjectiveStatsAccumulator = Record<string, {
   objectiveId: string;
@@ -63,6 +64,13 @@ export const update = mutation({
     const kr = await ctx.db.get(args.id);
     if (!kr) throw new Error("Key Result not found");
     await requireEditDepartment(ctx, kr.department);
+
+    if (
+      isGovernedPublishedKr(kr.krId) &&
+      (args.actualCurrent !== undefined || args.progressPercent !== undefined || args.status !== undefined)
+    ) {
+      throw new Error("Governed KR values are managed by governed sync or admin override.");
+    }
 
     const { id, ...updates } = args;
     const filtered = Object.fromEntries(Object.entries(updates).filter(([, value]) => value !== undefined));
@@ -172,11 +180,15 @@ export const remove = mutation({
 export const autoUpdate = internalMutation({
   args: {
     krId: v.string(),
+    metricKey: v.optional(v.string()),
     actualCurrent: v.string(),
     status: v.optional(v.string()),
     notes: v.optional(v.string()),
     date: v.string(),
     period: v.string(),
+    sourcePeriod: v.string(),
+    runId: v.string(),
+    syncKind: v.string(),
   },
   handler: async (ctx, args) => {
     const kr = await ctx.db
@@ -185,6 +197,7 @@ export const autoUpdate = internalMutation({
       .first();
     if (!kr) return;
 
+    const previousValue = parseNumericValue(kr.actualCurrent);
     const patch: { actualCurrent: string; status?: string } = { actualCurrent: args.actualCurrent };
     if (args.status !== undefined) patch.status = args.status;
     await ctx.db.patch(kr._id, patch);
@@ -209,5 +222,20 @@ export const autoUpdate = internalMutation({
         notes: args.notes ?? "Auto-synced from governed feed",
       });
     }
+
+    await ctx.db.insert("governedSyncAudit", {
+      runId: args.runId,
+      syncKind: args.syncKind,
+      action: "sync_applied",
+      period: args.sourcePeriod,
+      krId: args.krId,
+      metricKey: args.metricKey,
+      sourceValue: parseFloat(args.actualCurrent) || 0,
+      previousValue,
+      resultingValue: parseFloat(args.actualCurrent) || 0,
+      actor: "system",
+      reason: args.notes,
+      createdAt: Date.now(),
+    });
   },
 });

@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth, requireEditDepartment } from "./lib/auth";
+import { requireEditDepartment } from "./lib/auth";
+import { isGovernedPublishedKr } from "./lib/governedMetrics";
 
 export const list = query({
   args: { krId: v.optional(v.string()) },
@@ -27,6 +28,9 @@ export const add = mutation({
     const kr = await ctx.db.query("keyResults").withIndex("by_krId", (q) => q.eq("krId", args.krId)).first();
     if (kr) {
       await requireEditDepartment(ctx, kr.department);
+      if (isGovernedPublishedKr(kr.krId)) {
+        throw new Error("Governed KRs must be updated via governed sync or admin override.");
+      }
     }
 
     await ctx.db.insert("updateLog", args);

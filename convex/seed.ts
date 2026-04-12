@@ -10,7 +10,7 @@ export const seedAll = mutation({
     // Seed Lists
     const lists = [
       { category: "owners", values: ["MEC", "HWS", "Head of Nutrition", "Sales Lead", "FOH Manager", "Coworking Lead", "Finance", "Marketing", "Community Lead", "F&B Manager", "Product", "GM", "HR", "Lab Lead", "Fitness Lead", "Retail Lead", "WellnessLab Lead", "Recovery Lead"] },
-      { category: "frequencies", values: ["Weekly", "Monthly", "Quarterly"] },
+      { category: "frequencies", values: ["Weekly", "Monthly", "Quarterly", "Annual", "Manual"] },
       { category: "directions", values: ["Increase", "Decrease", "Milestone"] },
       { category: "statuses", values: ["No data", "Achieved", "On track", "Watch", "Off track"] },
       { category: "departments", values: ["Community", "F&B", "Finance", "Fitness", "Lab", "Marketing", "Member Experience", "Member Experience & Wellness", "Member Success", "Nutrition", "Nutrition + F&B", "Operations", "People & Culture", "Product", "Product & Coaching", "Retail", "Sales", "Sales + MEC", "Tech & CX", "Wellness Science", "WellnessLab"] },

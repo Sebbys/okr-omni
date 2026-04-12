@@ -33,6 +33,7 @@ import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isGovernedPublishedKr } from "@/lib/governed-krs";
 
 export default function UpdateLogPage() {
   const [search, setSearch] = useState("");
@@ -205,6 +206,9 @@ const PERIODS = generatePeriods();
 
 function AddUpdateDialog({ krs }: { krs: any[] }) {
   const addLog = useMutation(api.updateLog.add);
+  const editableKrs = [...krs]
+    .filter((kr) => !isGovernedPublishedKr(kr.krId))
+    .sort((a, b) => a.krId.localeCompare(b.krId, undefined, { numeric: true }));
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [period, setPeriod] = useState("");
@@ -270,15 +274,16 @@ function AddUpdateDialog({ krs }: { krs: any[] }) {
               <Select value={krId} onValueChange={(v) => v && setKrId(v)}>
                 <SelectTrigger><SelectValue placeholder="Select KR" /></SelectTrigger>
                 <SelectContent className="min-w-[350px]">
-                  {krs
-                    .sort((a, b) => a.krId.localeCompare(b.krId, undefined, { numeric: true }))
-                    .map((kr) => (
-                      <SelectItem key={kr._id} value={kr.krId}>
-                        {kr.krId} - {kr.keyResult}
-                      </SelectItem>
-                    ))}
+                  {editableKrs.map((kr) => (
+                    <SelectItem key={kr._id} value={kr.krId}>
+                      {kr.krId} - {kr.keyResult}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-[9px] font-mono tracking-wider text-muted-foreground">
+                GOVERNED_KRS_SYNC_FROM_DAILY_DASHBOARD_AND_CANNOT_BE_LOGGED_HERE
+              </p>
             </div>
             <div>
               <label className="text-[9px] font-mono tracking-widest mb-1 block text-muted-foreground">ACTUAL VALUE</label>

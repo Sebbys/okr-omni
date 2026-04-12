@@ -96,6 +96,58 @@ export default defineSchema({
     .index("by_date_and_metricKey", ["date", "metricKey"])
     .index("by_metricKey", ["metricKey"]),
 
+  // Append-only revision log for governed published metric imports
+  governedSnapshotRevision: defineTable({
+    runId: v.string(),
+    syncKind: v.string(), // "scheduled" | "backfill"
+    period: v.string(),
+    metricKey: v.string(),
+    krId: v.string(),
+    value: v.number(),
+    metadata: v.optional(v.string()),
+    fetchedAt: v.number(),
+    sourceComputedAt: v.optional(v.string()),
+  })
+    .index("by_runId", ["runId"])
+    .index("by_period_and_metricKey", ["period", "metricKey"])
+    .index("by_krId_and_period", ["krId", "period"]),
+
+  // Admin-approved exceptions for governed KRs. Active overrides out-rank sync writes.
+  governedOverride: defineTable({
+    krId: v.string(),
+    period: v.string(),
+    value: v.number(),
+    reason: v.string(),
+    sourceValue: v.optional(v.number()),
+    approvedBy: v.string(),
+    createdAt: v.number(),
+    active: v.boolean(),
+    clearedAt: v.optional(v.number()),
+    clearedBy: v.optional(v.string()),
+  })
+    .index("by_krId_period_active", ["krId", "period", "active"])
+    .index("by_period", ["period"]),
+
+  // Audit/debug trail for governed syncs and override actions
+  governedSyncAudit: defineTable({
+    runId: v.optional(v.string()),
+    syncKind: v.optional(v.string()),
+    action: v.string(),
+    period: v.string(),
+    krId: v.string(),
+    metricKey: v.optional(v.string()),
+    sourceValue: v.optional(v.number()),
+    previousValue: v.optional(v.number()),
+    resultingValue: v.optional(v.number()),
+    actor: v.string(),
+    reason: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_krId_and_period", ["krId", "period"])
+    .index("by_period", ["period"])
+    .index("by_runId", ["runId"]),
+
   // Legacy table kept for compatibility; governed KR sync no longer uses these mappings
   krAutoMapping: defineTable({
     krId: v.string(),
