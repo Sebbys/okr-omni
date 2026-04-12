@@ -13,6 +13,7 @@ import {
 import { Users, DollarSign, TrendingUp, Activity } from "lucide-react";
 import { getStatusColor } from "@/lib/gymmaster";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KrSourceBadge } from "@/components/kr-source-badge";
 
 export default function CEODashboardPage() {
   const metrics = useQuery(api.keyResults.ceoMetrics);
@@ -64,7 +65,10 @@ export default function CEODashboardPage() {
         {highlights.map((h) => (
           <div key={h.label} className={`rounded-lg border border-border/50 border-t-2 ${h.border} bg-card p-4`}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[9px] text-muted-foreground font-mono tracking-widest">{h.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-muted-foreground font-mono tracking-widest">{h.label}</span>
+                {h.kr && <KrSourceBadge krId={h.kr.krId} />}
+              </div>
               <h.icon className={`h-3.5 w-3.5 ${h.accent}`} />
             </div>
             <div className="text-xl font-bold font-mono">
@@ -97,7 +101,12 @@ export default function CEODashboardPage() {
               <TableBody>
                 {metrics.map((m, idx) => (
                   <TableRow key={m.krId} className={`border-border/20 hover:bg-foreground/3 ${idx % 2 === 0 ? "bg-foreground/[0.02]" : ""}`}>
-                    <TableCell className="font-semibold text-[10px] font-mono">{m.metric.toUpperCase()}</TableCell>
+                    <TableCell className="font-semibold text-[10px] font-mono">
+                      <div className="flex items-center gap-2">
+                        <span>{m.metric.toUpperCase()}</span>
+                        <KrSourceBadge krId={m.krId} />
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-[10px] font-semibold text-muted-foreground">{m.krId}</TableCell>
                     <TableCell className="text-[10px] font-mono text-muted-foreground">{m.target || "--"}</TableCell>
                     <TableCell className="text-[10px] font-semibold font-mono">{m.actual || <span className="text-muted-foreground/40 font-normal">--</span>}</TableCell>

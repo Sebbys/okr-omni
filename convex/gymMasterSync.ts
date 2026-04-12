@@ -204,7 +204,17 @@ async function syncPublishedPeriod(
 
   await ctx.runMutation(internal.gymMasterSync.syncKrMetadata, {
     metrics: published,
-    manualMetrics: payload.manualMetrics ?? [],
+    manualMetrics: (payload.manualMetrics ?? []).map((metric) => ({
+      id: metric.id,
+      metricKey: metric.metricKey,
+      name: metric.name,
+      cadence: metric.cadence,
+      target: metric.target,
+      unit: metric.unit,
+      publishStatus: metric.publishStatus,
+      sourceFamily: metric.sourceFamily,
+      sourceReports: metric.sourceReports,
+    })),
   });
 
   if (missingPublished.length > 0) {

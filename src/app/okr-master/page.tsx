@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isGovernedPublishedKr } from "@/lib/governed-krs";
+import { KrSourceBadge } from "@/components/kr-source-badge";
 
 export default function OKRMasterPage() {
   const [search, setSearch] = useState("");
@@ -198,11 +199,7 @@ export default function OKRMasterPage() {
                   <TableCell className="font-mono text-[10px] font-semibold text-foreground whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span>{kr.krId}</span>
-                      {isGovernedPublishedKr(kr.krId) && (
-                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-[8px] text-emerald-600 dark:text-emerald-400">
-                          GOVERNED
-                        </Badge>
-                      )}
+                      <KrSourceBadge krId={kr.krId} />
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-[10px] text-muted-foreground">{kr.objectiveId}</TableCell>
